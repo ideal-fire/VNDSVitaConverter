@@ -1,0 +1,23 @@
+Convert VNDS games to be usable with Higurashi-Vita.
+
+What the conversion does:
+	* Make all images 32 bit PNGs, bits used for ARGB.
+		* This is to make sure libvita2d can load them. https://github.com/xerpi/libvita2d/issues/57
+	* Make the folder look like a Higurashi folder by moving the assets into different folders.
+	* Extract ZIP files.
+	* Creat the "isvnds" file to identify the folder as a VNDS game for Higurashi-Vita
+
+Future plans:
+	* Detect AAC audio and tell the user how to fix it.
+
+How to use:
+	* Get at least Higurashi-Vita v2.4+
+	* Get VNDS game
+	* Extact the VNDS game ZIP file.
+		* You don't need to extract sound.zip, background.zip, etc.
+	* Launch the program
+	* Select the root of the VNDS game folder.
+        * Linux users will need to type in the path manually, Windows users can use a GUI.
+	* Wait
+	* The converted game will be at <original folder name>-converted
+	* Put converted game folder in ux0:data/HIGURASHI/Games/

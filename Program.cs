@@ -15,10 +15,7 @@ using System.Windows.Forms;
 namespace VNDSConverter
 {
 	class Program
-	{
-	
-		const bool autoDelete=true;
-		
+	{	
 		static string changeDirectoryPath(string _newDirectory){
 			string _returnString = _newDirectory.TrimEnd(Path.DirectorySeparatorChar);
 			string _normalFolderName = Path.GetFileName(_returnString);
@@ -81,14 +78,82 @@ namespace VNDSConverter
 			_toFix = _newImage;
 		}
 		
-		// After running this function, there will be copies of the images files with fixed bit depths in the PNG format
+		static void processSingleImage(string _sourceFile, string _destFile){
+			string _cachedExtension = Path.GetExtension(_sourceFile);
+			if (_cachedExtension==".png" || _cachedExtension==".jpg" || _cachedExtension==".jpeg" || _cachedExtension==".bmp"){
+				if (Options.detailedConsoleOutput){
+					Console.Out.WriteLine("[Image] {0}",_sourceFile);
+				}
+				Bitmap _tempLoadedBitmap;
+				try{
+					_tempLoadedBitmap = new Bitmap(_sourceFile);
+					//if (_tempLoadedBitmap.Width>_recordWidth){
+					//	_recordWidth = _tempLoadedBitmap.Width;
+					//}
+					//if (_tempLoadedBitmap.Height>_recordHeight){
+					//	_recordHeight = _tempLoadedBitmap.Height;
+					//}
+					makeBitmap32Bit(ref _tempLoadedBitmap);
+				}catch(Exception){
+					if (Options.importantConsoleOutput){
+						Console.Out.WriteLine("[BLACK] Force black image {0}",_sourceFile);
+					}
+					_tempLoadedBitmap = new Bitmap(256,192,PixelFormat.Format32bppArgb);
+					using (Graphics g = Graphics.FromImage(_tempLoadedBitmap)){
+						g.FillRectangle(Brushes.Black,0,0,_tempLoadedBitmap.Width,_tempLoadedBitmap.Height);
+					}
+				}
+				_tempLoadedBitmap.Save(_destFile,ImageFormat.Png);
+				/*if (_cachedExtension==".png"){
+					_tempLoadedBitmap.Save(Path.Combine(_destDirectory,Path.GetFileName(_filesToProcess[i]).ToUpper()),ImageFormat.Png);
+				}else if (_cachedExtension==".jpg" || _cachedExtension==".jpeg"){
+					_tempLoadedBitmap.Save(Path.Combine(_destDirectory,Path.GetFileName(_filesToProcess[i]).ToUpper()),ImageFormat.Jpeg);
+				}*/
+				_tempLoadedBitmap.Dispose();
+			}else{
+				if (Options.errorConsoleOutput){
+					Console.Out.WriteLine("[Skip] Non-image extension {0}.",Path.GetExtension(_sourceFile));
+				}
+			}
+		}
+
+		// based on https://docs.microsoft.com/en-us/dotnet/standard/io/how-to-copy-directories
 		static void processAndCopyImages(string _sourceDirectory, string _destDirectory){
+			// Get the subdirectories for the specified directory.
+			DirectoryInfo _currentDirectoryInfo = new DirectoryInfo(_sourceDirectory);
+			if (!_currentDirectoryInfo.Exists){
+				throw new DirectoryNotFoundException("Source directory does not exist or could not be found: "+ _sourceDirectory);
+			}
+			// If the destination destination directory doesn't exist, create it.
+			if (!Directory.Exists(_destDirectory)){
+				Directory.CreateDirectory(_destDirectory);
+			}
+			// Get the files in the directory and copy them to the new location. Does not include subdirectory files
+			FileInfo[] _currentDirectoryFiles = _currentDirectoryInfo.GetFiles();
+			for (int i=0;i<_currentDirectoryFiles.Length;++i){
+				string temppath = Path.Combine(_destDirectory, _currentDirectoryFiles[i].Name.ToUpper());
+				processSingleImage(_currentDirectoryFiles[i].FullName,temppath);
+			}
+			DirectoryInfo[] _foundSubdirectories = _currentDirectoryInfo.GetDirectories();
+			// Do this same function for all subdirectories
+			for (int i=0;i<_foundSubdirectories.Length;++i){
+				string temppath = Path.Combine(_destDirectory, _foundSubdirectories[i].Name.ToUpper());
+				processAndCopyImages(_foundSubdirectories[i].FullName, temppath);
+			}
+		}
+
+		// After running this function, there will be copies of the images files with fixed bit depths in the PNG format
+		/*static void processAndCopyImages(string _sourceDirectory, string _destDirectory){
 			if (Options.simpleConsoleOutput){
 				Console.Out.WriteLine("[IMAGE] {0} to {1}",_sourceDirectory,_destDirectory);
 			}
-			string[] _filesToProcess = Directory.GetFiles(_sourceDirectory,"*",SearchOption.AllDirectories);
-			int _recordWidth=256;
-			int _recordHeight=192;
+			string[] _filesToProcess = Directory.GetFiles(_sourceDirectory,"*",SearchOption.AllDirectories); // TODO - This removes directory structure, see https://docs.microsoft.com/en-us/dotnet/standard/io/how-to-copy-directories
+			// Make subdirectories
+			for (int i=0;i<_filesToProcess.Length;++i){
+				Directory.CreateDirectory(Path.Combine(_destDirectory,Path.GetDirectoryName(_filesToProcess[i].Substring(_sourceDirectory.Length)).ToUpper()));
+			}
+			//int _recordWidth=256;
+			//int _recordHeight=192;
 			for (int i=0;i<_filesToProcess.Length;i++){
 				string _cachedExtension = Path.GetExtension(_filesToProcess[i]);
 				if (_cachedExtension==".png" || _cachedExtension==".jpg" || _cachedExtension==".jpeg"){
@@ -98,12 +163,12 @@ namespace VNDSConverter
 					Bitmap _tempLoadedBitmap;
 					try{
 						_tempLoadedBitmap = new Bitmap(_filesToProcess[i]);
-						if (_tempLoadedBitmap.Width>_recordWidth){
-							_recordWidth = _tempLoadedBitmap.Width;
-						}
-						if (_tempLoadedBitmap.Height>_recordHeight){
-							_recordHeight = _tempLoadedBitmap.Height;
-						}
+						//if (_tempLoadedBitmap.Width>_recordWidth){
+						//	_recordWidth = _tempLoadedBitmap.Width;
+						//}
+						//if (_tempLoadedBitmap.Height>_recordHeight){
+						//	_recordHeight = _tempLoadedBitmap.Height;
+						//}
 						makeBitmap32Bit(ref _tempLoadedBitmap);
 					}catch(Exception){
 						if (Options.importantConsoleOutput){
@@ -114,12 +179,12 @@ namespace VNDSConverter
 							g.FillRectangle(Brushes.Black,0,0,_tempLoadedBitmap.Width,_tempLoadedBitmap.Height);
 						}
 					}
-					_tempLoadedBitmap.Save(Path.Combine(_destDirectory,Path.GetFileName(_filesToProcess[i]).ToUpper()),ImageFormat.Png);
+					_tempLoadedBitmap.Save(Path.Combine(_destDirectory, _filesToProcess[i].Substring(_sourceDirectory.Length).ToUpper()),ImageFormat.Png);
 					/*if (_cachedExtension==".png"){
 						_tempLoadedBitmap.Save(Path.Combine(_destDirectory,Path.GetFileName(_filesToProcess[i]).ToUpper()),ImageFormat.Png);
 					}else if (_cachedExtension==".jpg" || _cachedExtension==".jpeg"){
 						_tempLoadedBitmap.Save(Path.Combine(_destDirectory,Path.GetFileName(_filesToProcess[i]).ToUpper()),ImageFormat.Jpeg);
-					}*/
+					} ** /
 					_tempLoadedBitmap.Dispose();
 				}else{
 					if (Options.errorConsoleOutput){
@@ -127,7 +192,7 @@ namespace VNDSConverter
 					}
 				}
 			}
-		}
+		}*/
 		
 		static void maybeExtractZIPFile(string _zipPath, string _destPath){
 			if (File.Exists(_zipPath)){
@@ -159,8 +224,7 @@ namespace VNDSConverter
 		
 		public static string doFunctionality(string _originalGameFolderName){
 			string _newGameFolderPath = changeDirectoryPath(_originalGameFolderName);
-			if (autoDelete){
-				
+			if (Options.autoDelete){
 				if (Directory.Exists(_newGameFolderPath)){
 					try{
 						if (Options.importantConsoleOutput){
@@ -189,10 +253,17 @@ namespace VNDSConverter
 				Console.Out.WriteLine("[COPY] Assorted root game directory files");
 			}
 			copyIfExist(Path.Combine(_originalGameFolderName,"default.ttf"),Path.Combine(_newGameFolderPath,"default.ttf"));
-			copyIfExist(Path.Combine(_originalGameFolderName,"icon.png"),Path.Combine(_newGameFolderPath,"icon.png"));
 			copyIfExist(Path.Combine(_originalGameFolderName,"info.txt"),Path.Combine(_newGameFolderPath,"info.txt"));
-			copyIfExist(Path.Combine(_originalGameFolderName,"thumbnail.png"),Path.Combine(_newGameFolderPath,"thumbnail.png"));
 			copyIfExist(Path.Combine(_originalGameFolderName,"img.ini"),Path.Combine(_newGameFolderPath,"img.ini"));
+			if (File.Exists(Path.Combine(_originalGameFolderName,"icon.png"))){
+				Console.Out.WriteLine("Fix and copy icon.png");
+				processSingleImage(Path.Combine(_originalGameFolderName,"icon.png"),Path.Combine(_newGameFolderPath,"icon.png"));
+			}
+			if (File.Exists(Path.Combine(_originalGameFolderName,"thumbnail.png"))){
+				Console.Out.WriteLine("Fix and copy thumbnail.png");
+				processSingleImage(Path.Combine(_originalGameFolderName,"thumbnail.png"),Path.Combine(_newGameFolderPath,"thumbnail.png"));
+			}
+			
 			
 			if (Options.simpleConsoleOutput){
 				Console.Out.WriteLine("[CREATE] {0}",Path.Combine(_newGameFolderPath,"isvnds"));
@@ -219,14 +290,27 @@ namespace VNDSConverter
 		static void Main(string[] args){
 			string _sourceFile=null;
 			if (args.Length==0){
-				Application.EnableVisualStyles();
-				Application.SetCompatibleTextRenderingDefault(false);
-				MainForm myMainForm = new MainForm();
-				Application.Run(myMainForm);
-				_sourceFile = myMainForm.confirmedChosenDirectory;
-				if (_sourceFile==null){
-					Console.Out.WriteLine("_sourceFile==null");
-					return;
+				if (!StolenCode.IsRunningOnMono()){
+					Application.EnableVisualStyles();
+					Application.SetCompatibleTextRenderingDefault(false);
+					MainForm myMainForm = new MainForm();
+					Application.Run(myMainForm);
+					_sourceFile = myMainForm.confirmedChosenDirectory;
+					if (_sourceFile==null){
+						Console.Out.WriteLine("_sourceFile==null");
+						return;
+					}
+				}else{
+					args = new string[1];
+					args[0]=null;
+					while (args[0]==null){
+						Console.Out.WriteLine("Enter the VNDS game's folder path. The path should end in a slash and the folder should be in a writable directory\nFor example, /home/nathan/higurashi/\n");
+						args[0] = Console.ReadLine();
+						if (!Directory.Exists(args[0])){
+							Console.Out.WriteLine("\nDirectory {0} does not exist.",args[0]);
+							args[0]=null;
+						}
+					}
 				}
 			}
 			int i;
@@ -242,6 +326,8 @@ namespace VNDSConverter
 						toggleDependingOnArgs(args,ref i, ref Options.errorConsoleOutput);
 					}else if (args[i]=="-importantoutput"){
 						toggleDependingOnArgs(args,ref i, ref Options.importantConsoleOutput);
+					}else if (args[i]=="-autodelete"){
+						toggleDependingOnArgs(args,ref i, ref Options.autoDelete);
 					}
 				}
 			}
@@ -253,6 +339,22 @@ namespace VNDSConverter
 				Console.ReadKey();
 				return;
 			}
+			if (!File.Exists(Path.Combine(_sourceFile,"info.txt"))){
+				Console.Out.WriteLine("{0} does not exist, so I assume that this IS NOT a VNDS game folder. Retry.\n",Path.Combine(_sourceFile,"info.txt"));
+				return;
+			}
+
+			//for (i=0;i<possibleFreacLocations.Length;++i){
+			//	if (File.Exists(possibleFreacLocations[i])){
+			//		Options.canConvertAudio=true;
+			//		Options.actualFreacLocation = possibleFreacLocations[i];
+			//		break;
+			//	}
+			//}
+			//if (!Options.canConvertAudio){
+			//	Console.out.WriteLine("This is the version without audio conversion. DS novels may not convert correctly.");
+			//}
+
 			if (Options.importantConsoleOutput){
 				Console.WriteLine("Hello World!");
 			}
@@ -261,6 +363,8 @@ namespace VNDSConverter
 				Console.Out.WriteLine("Done, you may close this window.\nThe converted game is at {0}",doFunctionality(_sourceFile));
 				printPressAnyKey();
 				Console.ReadKey(true);
+			}else{
+				doFunctionality(_sourceFile);
 			}
 		}
 	}
