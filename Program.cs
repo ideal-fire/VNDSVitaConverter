@@ -11,6 +11,7 @@ using System.Drawing.Imaging;
 using VNDSConverter;
 using System.IO.Compression;
 using System.Windows.Forms;
+using System.Diagnostics;
 
 namespace VNDSConverter
 {
@@ -116,9 +117,35 @@ namespace VNDSConverter
 				}
 			}
 		}
-
+		static void copyAndOverwriteFile(string _inFile, string _outFile){
+			File.Copy(_inFile,_outFile,true);
+		}
+		static void processSingleSound(string _inFile, string _outFile){
+			if (Path.GetExtension(_inFile)==".aac"){
+				if (Options.canUseFFmpeg){
+					if (Options.detailedConsoleOutput){
+						Console.Out.WriteLine("Process and copy {0}",_inFile);
+					}
+					Process _thingie = Process.Start("ffmpeg","-i \""+_inFile+"\" "+Path.ChangeExtension(_outFile,".ogg"));
+					if (!Options.canInfiniteProcess){
+						// Don't want my users' computers to explode
+						_thingie.WaitForExit(3000);
+					}
+				}else{
+					if (Options.detailedConsoleOutput){
+						Console.Out.WriteLine("Skip .aac file {0}",_inFile);
+					}
+				}
+			}else{
+				if (Options.detailedConsoleOutput){
+					Console.Out.WriteLine("[Copy] {0} to {1}",_inFile, _outFile);
+				}
+				File.Copy(_inFile, _outFile);
+			}
+		}
 		// based on https://docs.microsoft.com/en-us/dotnet/standard/io/how-to-copy-directories
-		static void processAndCopyImages(string _sourceDirectory, string _destDirectory){
+		// Function that should be used to copy all files in a directory and its subdirectories. The function you pass it is called with two filenames, the source and destination filename. You can process the source file and output it to destination filename.
+		static void processDirectory(string _sourceDirectory, string _destDirectory, Action<string, string> _everyFileFunction){
 			// Get the subdirectories for the specified directory.
 			DirectoryInfo _currentDirectoryInfo = new DirectoryInfo(_sourceDirectory);
 			if (!_currentDirectoryInfo.Exists){
@@ -131,68 +158,16 @@ namespace VNDSConverter
 			// Get the files in the directory and copy them to the new location. Does not include subdirectory files
 			FileInfo[] _currentDirectoryFiles = _currentDirectoryInfo.GetFiles();
 			for (int i=0;i<_currentDirectoryFiles.Length;++i){
-				string temppath = Path.Combine(_destDirectory, _currentDirectoryFiles[i].Name.ToUpper());
-				processSingleImage(_currentDirectoryFiles[i].FullName,temppath);
+				string temppath = Path.Combine(_destDirectory, _currentDirectoryFiles[i].Name/*.ToUpper()*/);
+				_everyFileFunction(_currentDirectoryFiles[i].FullName,temppath);
 			}
 			DirectoryInfo[] _foundSubdirectories = _currentDirectoryInfo.GetDirectories();
 			// Do this same function for all subdirectories
 			for (int i=0;i<_foundSubdirectories.Length;++i){
-				string temppath = Path.Combine(_destDirectory, _foundSubdirectories[i].Name.ToUpper());
-				processAndCopyImages(_foundSubdirectories[i].FullName, temppath);
+				string temppath = Path.Combine(_destDirectory, _foundSubdirectories[i].Name/*.ToUpper()*/);
+				processDirectory(_foundSubdirectories[i].FullName, temppath, _everyFileFunction);
 			}
 		}
-
-		// After running this function, there will be copies of the images files with fixed bit depths in the PNG format
-		/*static void processAndCopyImages(string _sourceDirectory, string _destDirectory){
-			if (Options.simpleConsoleOutput){
-				Console.Out.WriteLine("[IMAGE] {0} to {1}",_sourceDirectory,_destDirectory);
-			}
-			string[] _filesToProcess = Directory.GetFiles(_sourceDirectory,"*",SearchOption.AllDirectories); // TODO - This removes directory structure, see https://docs.microsoft.com/en-us/dotnet/standard/io/how-to-copy-directories
-			// Make subdirectories
-			for (int i=0;i<_filesToProcess.Length;++i){
-				Directory.CreateDirectory(Path.Combine(_destDirectory,Path.GetDirectoryName(_filesToProcess[i].Substring(_sourceDirectory.Length)).ToUpper()));
-			}
-			//int _recordWidth=256;
-			//int _recordHeight=192;
-			for (int i=0;i<_filesToProcess.Length;i++){
-				string _cachedExtension = Path.GetExtension(_filesToProcess[i]);
-				if (_cachedExtension==".png" || _cachedExtension==".jpg" || _cachedExtension==".jpeg"){
-					if (Options.detailedConsoleOutput){
-						Console.Out.WriteLine("[Image] {0}",_filesToProcess[i]);
-					}
-					Bitmap _tempLoadedBitmap;
-					try{
-						_tempLoadedBitmap = new Bitmap(_filesToProcess[i]);
-						//if (_tempLoadedBitmap.Width>_recordWidth){
-						//	_recordWidth = _tempLoadedBitmap.Width;
-						//}
-						//if (_tempLoadedBitmap.Height>_recordHeight){
-						//	_recordHeight = _tempLoadedBitmap.Height;
-						//}
-						makeBitmap32Bit(ref _tempLoadedBitmap);
-					}catch(Exception){
-						if (Options.importantConsoleOutput){
-							Console.Out.WriteLine("[BLACK] Force black image {0}",_filesToProcess[i]);
-						}
-						_tempLoadedBitmap = new Bitmap(256,192,PixelFormat.Format32bppArgb);
-						using (Graphics g = Graphics.FromImage(_tempLoadedBitmap)){
-							g.FillRectangle(Brushes.Black,0,0,_tempLoadedBitmap.Width,_tempLoadedBitmap.Height);
-						}
-					}
-					_tempLoadedBitmap.Save(Path.Combine(_destDirectory, _filesToProcess[i].Substring(_sourceDirectory.Length).ToUpper()),ImageFormat.Png);
-					/*if (_cachedExtension==".png"){
-						_tempLoadedBitmap.Save(Path.Combine(_destDirectory,Path.GetFileName(_filesToProcess[i]).ToUpper()),ImageFormat.Png);
-					}else if (_cachedExtension==".jpg" || _cachedExtension==".jpeg"){
-						_tempLoadedBitmap.Save(Path.Combine(_destDirectory,Path.GetFileName(_filesToProcess[i]).ToUpper()),ImageFormat.Jpeg);
-					} ** /
-					_tempLoadedBitmap.Dispose();
-				}else{
-					if (Options.errorConsoleOutput){
-						Console.Out.WriteLine("[Skip] Non-image extension {0}.",Path.GetExtension(_filesToProcess[i]));
-					}
-				}
-			}
-		}*/
 		
 		static void maybeExtractZIPFile(string _zipPath, string _destPath){
 			if (File.Exists(_zipPath)){
@@ -245,10 +220,10 @@ namespace VNDSConverter
 			maybeExtractZIPFile(Path.Combine(_originalGameFolderName,"script.zip"),_originalGameFolderName);
 			maybeExtractZIPFile(Path.Combine(_originalGameFolderName,"sound.zip"),_originalGameFolderName);
 			
-			StolenCode.copyDirectory(getOldAudioDirectory(_originalGameFolderName),getNewAudioDirectory(_newGameFolderPath));
-			StolenCode.copyDirectory(getOldScriptDirectory(_originalGameFolderName),getNewScriptDirectory(_newGameFolderPath));
-			processAndCopyImages(getOldCGDirectoryA(_originalGameFolderName),getNewCGDirectoryA(_newGameFolderPath));
-			processAndCopyImages(getOldCGDirectoryB(_originalGameFolderName),getNewCGDirectoryB(_newGameFolderPath));
+			processDirectory(getOldAudioDirectory(_originalGameFolderName),getNewAudioDirectory(_newGameFolderPath),processSingleSound);
+			processDirectory(getOldScriptDirectory(_originalGameFolderName),getNewScriptDirectory(_newGameFolderPath),copyAndOverwriteFile);
+			processDirectory(getOldCGDirectoryA(_originalGameFolderName),getNewCGDirectoryA(_newGameFolderPath),processSingleImage);
+			processDirectory(getOldCGDirectoryB(_originalGameFolderName),getNewCGDirectoryB(_newGameFolderPath),processSingleImage);
 			if (Options.simpleConsoleOutput){
 				Console.Out.WriteLine("[COPY] Assorted root game directory files");
 			}
@@ -286,9 +261,31 @@ namespace VNDSConverter
 			Console.Write("Press any key to continue . . . ");
 		}
 		
+		static bool getFFmpegExist(){
+			Process _possibleFFmpegProcess = new Process();
+			if (StolenCode.IsRunningOnMono()){
+				_possibleFFmpegProcess.StartInfo.FileName = "ffmpeg";
+			}else{
+				_possibleFFmpegProcess.StartInfo.FileName = "ffmpeg.exe";
+			}
+			_possibleFFmpegProcess.StartInfo.Arguments = "-version";
+			_possibleFFmpegProcess.StartInfo.UseShellExecute = false;
+			_possibleFFmpegProcess.StartInfo.RedirectStandardOutput = true;
+			_possibleFFmpegProcess.Start();    
+			_possibleFFmpegProcess.WaitForExit();
+			if (_possibleFFmpegProcess.StandardOutput.ReadToEnd().StartsWith("ffmpeg version")){
+				return true;
+			}else{
+				return false;
+			}
+		}
+
 		[STAThread]
 		static void Main(string[] args){
 			string _sourceFile=null;
+			Console.Out.Write("Checking for FFmpeg...");
+			Options.canUseFFmpeg = getFFmpegExist();
+			Console.Out.WriteLine(Options.canUseFFmpeg);
 			if (args.Length==0){
 				if (!StolenCode.IsRunningOnMono()){
 					Application.EnableVisualStyles();
@@ -303,6 +300,11 @@ namespace VNDSConverter
 				}else{
 					args = new string[1];
 					args[0]=null;
+
+					if (!Options.canUseFFmpeg){
+						Console.Out.WriteLine("\n\nI think FFmpeg is not installed. AAC audio won't be able to be converted and played on the Vita. If you want this feature, please install FFmpeg and make sure it's in PATH. Run from terminal and append -forceffmpeg to force FFmpeg usage even if it's not found. \n\n");
+					}
+
 					while (args[0]==null){
 						Console.Out.WriteLine("Enter the VNDS game's folder path. The path should end in a slash and the folder should be in a writable directory\nFor example, /home/nathan/higurashi/\n");
 						args[0] = Console.ReadLine();
@@ -328,6 +330,12 @@ namespace VNDSConverter
 						toggleDependingOnArgs(args,ref i, ref Options.importantConsoleOutput);
 					}else if (args[i]=="-autodelete"){
 						toggleDependingOnArgs(args,ref i, ref Options.autoDelete);
+					}else if (args[i]=="-ffmpeg"){
+						toggleDependingOnArgs(args,ref i, ref Options.canUseFFmpeg);
+					}else if (args[i]=="-forceffmpeg"){
+						Options.canUseFFmpeg=true;
+					}else if (args[i]=="-infiniteprocesses"){
+						Options.canInfiniteProcess=true;
 					}
 				}
 			}
