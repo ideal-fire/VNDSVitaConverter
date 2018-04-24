@@ -28,6 +28,12 @@ namespace VNDSConverter
 			//
 			// TODO: Add constructor code after the InitializeComponent() call.
 			//
+			if (Options.canUseFFmpeg){
+				ffmpegstatuslabel.Text="FFmpeg detected!"; // Enthusiasm, an average Windows user managed to download a program.
+			}else{
+				ffmpegstatuslabel.Text="FFmpeg not detected, .aac audio can't be converted. Please place ffmpeg.exe in the same directory as this program.";
+				ffmpegstatuslabel.ForeColor = Color.Red;
+			}
 		}
 		void selectButtonClick(object sender, EventArgs e)
 		{

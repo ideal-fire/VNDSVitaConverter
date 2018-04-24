@@ -14,6 +14,7 @@ namespace VNDSConverter
 		private System.Windows.Forms.Button selectFolderButton;
 		private System.Windows.Forms.Label currentFolderLabel;
 		private System.Windows.Forms.Button goButton;
+		private System.Windows.Forms.Label ffmpegstatuslabel;
 		
 		/// <summary>
 		/// Disposes resources used by the form.
@@ -38,6 +39,7 @@ namespace VNDSConverter
 			this.selectFolderButton = new System.Windows.Forms.Button();
 			this.currentFolderLabel = new System.Windows.Forms.Label();
 			this.goButton = new System.Windows.Forms.Button();
+			this.ffmpegstatuslabel = new System.Windows.Forms.Label();
 			this.SuspendLayout();
 			// 
 			// selectFolderButton
@@ -68,11 +70,20 @@ namespace VNDSConverter
 			this.goButton.UseVisualStyleBackColor = true;
 			this.goButton.Click += new System.EventHandler(this.GoButtonClick);
 			// 
+			// ffmpegstatuslabel
+			// 
+			this.ffmpegstatuslabel.Location = new System.Drawing.Point(13, 93);
+			this.ffmpegstatuslabel.Name = "ffmpegstatuslabel";
+			this.ffmpegstatuslabel.Size = new System.Drawing.Size(139, 38);
+			this.ffmpegstatuslabel.TabIndex = 3;
+			this.ffmpegstatuslabel.Text = "label1";
+			// 
 			// MainForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-			this.ClientSize = new System.Drawing.Size(164, 106);
+			this.ClientSize = new System.Drawing.Size(167, 140);
+			this.Controls.Add(this.ffmpegstatuslabel);
 			this.Controls.Add(this.goButton);
 			this.Controls.Add(this.currentFolderLabel);
 			this.Controls.Add(this.selectFolderButton);

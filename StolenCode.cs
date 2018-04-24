@@ -12,7 +12,6 @@ namespace VNDSConverter
 {
 	public static class StolenCode
 	{
-		// Hmm...bool 
 		static byte cachedIsRunningMono = 3;
 		public static bool IsRunningOnMono(){
 			if (cachedIsRunningMono==3){

@@ -124,15 +124,24 @@ namespace VNDSConverter
 			if (Path.GetExtension(_inFile)==".aac"){
 				if (Options.canUseFFmpeg){
 					if (Options.detailedConsoleOutput){
-						Console.Out.WriteLine("Process and copy {0}",_inFile);
+						Console.Out.WriteLine("Process {0}",_inFile);
 					}
-					Process _thingie = Process.Start("ffmpeg","-i \""+_inFile+"\" "+Path.ChangeExtension(_outFile,".ogg"));
+					Process _FFmpegProcess = new Process();
+					if (StolenCode.IsRunningOnMono()){
+						_FFmpegProcess.StartInfo.FileName = "ffmpeg";
+					}else{
+						_FFmpegProcess.StartInfo.FileName = "ffmpeg.exe";
+					}
+					_FFmpegProcess.StartInfo.Arguments = "-i \""+_inFile+"\" "+Path.ChangeExtension(_outFile,".ogg");
+					_FFmpegProcess.StartInfo.UseShellExecute = false;
+					_FFmpegProcess.StartInfo.RedirectStandardOutput = true;
+					_FFmpegProcess.Start();
 					if (!Options.canInfiniteProcess){
 						// Don't want my users' computers to explode
-						_thingie.WaitForExit(3000);
+						_FFmpegProcess.WaitForExit(3000);
 					}
 				}else{
-					if (Options.detailedConsoleOutput){
+					if (Options.errorConsoleOutput){ // Because this is important
 						Console.Out.WriteLine("Skip .aac file {0}",_inFile);
 					}
 				}
@@ -271,8 +280,12 @@ namespace VNDSConverter
 			_possibleFFmpegProcess.StartInfo.Arguments = "-version";
 			_possibleFFmpegProcess.StartInfo.UseShellExecute = false;
 			_possibleFFmpegProcess.StartInfo.RedirectStandardOutput = true;
-			_possibleFFmpegProcess.Start();    
-			_possibleFFmpegProcess.WaitForExit();
+			try{
+				_possibleFFmpegProcess.Start();
+				_possibleFFmpegProcess.WaitForExit();
+			}catch(Exception){ // Windows throws error if file not found
+				return false;
+			}
 			if (_possibleFFmpegProcess.StandardOutput.ReadToEnd().StartsWith("ffmpeg version")){
 				return true;
 			}else{
