@@ -5,16 +5,15 @@ What the conversion does:
 		* This is to make sure libvita2d can load them. https://github.com/xerpi/libvita2d/issues/57
 	* Make the folder look like a Higurashi folder by moving the assets into different folders.
 	* Extract ZIP files.
-	* Creat the "isvnds" file to identify the folder as a VNDS game for Higurashi-Vita
-
-Future plans:
-	* Detect AAC audio and tell the user how to fix it.
+	* Create the "isvnds" file to identify the folder as a VNDS game for Higurashi-Vita
+	* Detect .aac audio and convert it with FFmpeg, if possible.
 
 How to use:
 	* Get at least Higurashi-Vita v2.4+
 	* Get VNDS game
+	* If you have AAC audio in your game, install FFmpeg and make sure it's in PATH or in the same directory as the converter.
 	* Extact the VNDS game ZIP file.
-		* You don't need to extract sound.zip, background.zip, etc.
+		* You don't need to extract sound.zip, background.zip, etc. yourself.
 	* Launch the program
 	* Select the root of the VNDS game folder.
         * Linux users will need to type in the path manually, Windows users can use a GUI.

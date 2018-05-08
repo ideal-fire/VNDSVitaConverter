@@ -132,7 +132,7 @@ namespace VNDSConverter
 					}else{
 						_FFmpegProcess.StartInfo.FileName = "ffmpeg.exe";
 					}
-					_FFmpegProcess.StartInfo.Arguments = "-i \""+_inFile+"\" "+Path.ChangeExtension(_outFile,".ogg");
+					_FFmpegProcess.StartInfo.Arguments = "-i \""+_inFile+"\" \""+Path.ChangeExtension(_outFile,".ogg")+"\"";
 					_FFmpegProcess.StartInfo.UseShellExecute = false;
 					_FFmpegProcess.StartInfo.RedirectStandardOutput = true;
 					_FFmpegProcess.Start();
