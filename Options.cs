@@ -4,7 +4,6 @@
  * Time: 5:57 PM
  */
 using System;
-using System.Drawing.Imaging;
 
 namespace VNDSConverter
 {
@@ -20,10 +19,6 @@ namespace VNDSConverter
 		public static bool canUseFFmpeg=false;
 		public static bool canInfiniteProcess=false;
 
-		public static ImageFormat forcedImageFormat = ImageFormat.Jpeg;
-		
-		public static byte savedVersionNumber = 2;
-		
 		//public const string[] possibleFreacLocations = new string[]{"./putwindowexehere","./freac-1.1-alpha-20180306-linux-64/freac","./freac-1.1-alpha-20180306-linux/freac"}
 		//public static string actualFreacLocation;
 

@@ -104,7 +104,7 @@ namespace VNDSConverter
 						g.FillRectangle(Brushes.Black,0,0,_tempLoadedBitmap.Width,_tempLoadedBitmap.Height);
 					}
 				}
-				_tempLoadedBitmap.Save(_destFile,Options.forcedImageFormat);
+				_tempLoadedBitmap.Save(_destFile,ImageFormat.Png);
 				/*if (_cachedExtension==".png"){
 					_tempLoadedBitmap.Save(Path.Combine(_destDirectory,Path.GetFileName(_filesToProcess[i]).ToUpper()),ImageFormat.Png);
 				}else if (_cachedExtension==".jpg" || _cachedExtension==".jpeg"){
@@ -254,17 +254,6 @@ namespace VNDSConverter
 			}
 			File.Create(Path.Combine(_newGameFolderPath,"isvnds")).Dispose();
 			
-			BinaryWriter _infoFileWriter = new BinaryWriter(new FileStream(Path.Combine(_newGameFolderPath,"vndsvitaproperties"),FileMode.Create));
-			_infoFileWriter.Write(Options.savedVersionNumber);
-			if (Options.forcedImageFormat==ImageFormat.Png){
-				_infoFileWriter.Write((byte)1);
-			}else if (Options.forcedImageFormat==ImageFormat.Jpeg){
-				_infoFileWriter.Write((byte)2);
-			}else{
-				_infoFileWriter.Write((byte)0);
-			}
-			_infoFileWriter.Dispose();
-			
 			return _newGameFolderPath;
 		}
 		
@@ -310,8 +299,6 @@ namespace VNDSConverter
 			Console.Out.Write("Checking for FFmpeg...");
 			Options.canUseFFmpeg = getFFmpegExist();
 			Console.Out.WriteLine(Options.canUseFFmpeg);
-			//
-			Console.Out.WriteLine("Saved ver: "+Options.savedVersionNumber);
 			if (args.Length==0){
 				if (!StolenCode.IsRunningOnMono()){
 					Application.EnableVisualStyles();
@@ -362,10 +349,6 @@ namespace VNDSConverter
 						Options.canUseFFmpeg=true;
 					}else if (args[i]=="-infiniteprocesses"){
 						Options.canInfiniteProcess=true;
-					}else if (args[i]=="-png"){
-						Options.forcedImageFormat = ImageFormat.Png;
-					}else if (args[i]=="-jpg"){
-						Options.forcedImageFormat = ImageFormat.Jpeg;
 					}
 				}
 			}
