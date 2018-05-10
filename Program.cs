@@ -13,10 +13,8 @@ using System.IO.Compression;
 using System.Windows.Forms;
 using System.Diagnostics;
 
-namespace VNDSConverter
-{
-	class Program
-	{	
+namespace VNDSConverter{
+	class Program{
 		static string changeDirectoryPath(string _newDirectory){
 			string _returnString = _newDirectory.TrimEnd(Path.DirectorySeparatorChar);
 			string _normalFolderName = Path.GetFileName(_returnString);
@@ -39,9 +37,12 @@ namespace VNDSConverter
 		}
 		
 		// Pass the root directory of the old folder
+
+		// background
 		static string getOldCGDirectoryA(string _rootDirectory){
 			return Path.Combine(_rootDirectory,"background"+Path.DirectorySeparatorChar);
 		}
+		// characters
 		static string getOldCGDirectoryB(string _rootDirectory){
 			return Path.Combine(_rootDirectory,"foreground"+Path.DirectorySeparatorChar);
 		}
@@ -69,17 +70,32 @@ namespace VNDSConverter
 			}
 		}
 		
-		static void makeBitmap32Bit(ref Bitmap _toFix){
-			Bitmap _newImage = new Bitmap(_toFix.Width,_toFix.Height,PixelFormat.Format32bppArgb);
-			using (Graphics g = Graphics.FromImage(_newImage))
-			{
+		// Also resizes image
+		static void fixBitmap(ref Bitmap _toFix, bool _isBust){
+			Bitmap _newImage;
+			if (_isBust){
+				_newImage = new Bitmap((int)Math.Ceiling(_toFix.Width/(double)Options.imageRoundUpWidth)*Options.imageRoundUpWidth,(int)Math.Ceiling(_toFix.Height/(double)Options.imageRoundUpHeight)*Options.imageRoundUpHeight,PixelFormat.Format32bppArgb);
+				// Because some of the image won't be used.
+				_newImage.MakeTransparent();
+			}else{
+				_newImage = new Bitmap(_toFix.Width,_toFix.Height,PixelFormat.Format32bppArgb);
+			}
+			//
+			using (Graphics g = Graphics.FromImage(_newImage)){
 				g.DrawImageUnscaledAndClipped(_toFix,new Rectangle(0,0,_newImage.Width,_newImage.Height));
 			}
 			_toFix.Dispose();
 			_toFix = _newImage;
 		}
 		
-		static void processSingleImage(string _sourceFile, string _destFile){
+		static void processBackgroundImages(string _sourceFile, string _destFile){
+			_processSingleImage(_sourceFile,_destFile,false);
+		}
+		static void processCharacterImages(string _sourceFile, string _destFile){
+			_processSingleImage(_sourceFile,_destFile,true);
+		}
+
+		static void _processSingleImage(string _sourceFile, string _destFile, bool _isBust){
 			string _cachedExtension = Path.GetExtension(_sourceFile);
 			if (_cachedExtension==".png" || _cachedExtension==".jpg" || _cachedExtension==".jpeg" || _cachedExtension==".bmp"){
 				if (Options.detailedConsoleOutput){
@@ -94,7 +110,7 @@ namespace VNDSConverter
 					//if (_tempLoadedBitmap.Height>_recordHeight){
 					//	_recordHeight = _tempLoadedBitmap.Height;
 					//}
-					makeBitmap32Bit(ref _tempLoadedBitmap);
+					fixBitmap(ref _tempLoadedBitmap,_isBust);
 				}catch(Exception){
 					if (Options.importantConsoleOutput){
 						Console.Out.WriteLine("[BLACK] Force black image {0}",_sourceFile);
@@ -103,6 +119,7 @@ namespace VNDSConverter
 					using (Graphics g = Graphics.FromImage(_tempLoadedBitmap)){
 						g.FillRectangle(Brushes.Black,0,0,_tempLoadedBitmap.Width,_tempLoadedBitmap.Height);
 					}
+					fixBitmap(ref _tempLoadedBitmap,_isBust);
 				}
 				_tempLoadedBitmap.Save(_destFile,ImageFormat.Png);
 				/*if (_cachedExtension==".png"){
@@ -155,6 +172,9 @@ namespace VNDSConverter
 		// based on https://docs.microsoft.com/en-us/dotnet/standard/io/how-to-copy-directories
 		// Function that should be used to copy all files in a directory and its subdirectories. The function you pass it is called with two filenames, the source and destination filename. You can process the source file and output it to destination filename.
 		static void processDirectory(string _sourceDirectory, string _destDirectory, Action<string, string> _everyFileFunction){
+			if (Options.simpleConsoleOutput){
+				Console.Out.Write("Process {0} to {1}\n",_sourceDirectory,_destDirectory);
+			}
 			// Get the subdirectories for the specified directory.
 			DirectoryInfo _currentDirectoryInfo = new DirectoryInfo(_sourceDirectory);
 			if (!_currentDirectoryInfo.Exists){
@@ -231,8 +251,8 @@ namespace VNDSConverter
 			
 			processDirectory(getOldAudioDirectory(_originalGameFolderName),getNewAudioDirectory(_newGameFolderPath),processSingleSound);
 			processDirectory(getOldScriptDirectory(_originalGameFolderName),getNewScriptDirectory(_newGameFolderPath),copyAndOverwriteFile);
-			processDirectory(getOldCGDirectoryA(_originalGameFolderName),getNewCGDirectoryA(_newGameFolderPath),processSingleImage);
-			processDirectory(getOldCGDirectoryB(_originalGameFolderName),getNewCGDirectoryB(_newGameFolderPath),processSingleImage);
+			processDirectory(getOldCGDirectoryA(_originalGameFolderName),getNewCGDirectoryA(_newGameFolderPath),processBackgroundImages);
+			processDirectory(getOldCGDirectoryB(_originalGameFolderName),getNewCGDirectoryB(_newGameFolderPath),processCharacterImages);
 			if (Options.simpleConsoleOutput){
 				Console.Out.WriteLine("[COPY] Assorted root game directory files");
 			}
@@ -241,11 +261,11 @@ namespace VNDSConverter
 			copyIfExist(Path.Combine(_originalGameFolderName,"img.ini"),Path.Combine(_newGameFolderPath,"img.ini"));
 			if (File.Exists(Path.Combine(_originalGameFolderName,"icon.png"))){
 				Console.Out.WriteLine("Fix and copy icon.png");
-				processSingleImage(Path.Combine(_originalGameFolderName,"icon.png"),Path.Combine(_newGameFolderPath,"icon.png"));
+				_processSingleImage(Path.Combine(_originalGameFolderName,"icon.png"),Path.Combine(_newGameFolderPath,"icon.png"),false);
 			}
 			if (File.Exists(Path.Combine(_originalGameFolderName,"thumbnail.png"))){
 				Console.Out.WriteLine("Fix and copy thumbnail.png");
-				processSingleImage(Path.Combine(_originalGameFolderName,"thumbnail.png"),Path.Combine(_newGameFolderPath,"thumbnail.png"));
+				_processSingleImage(Path.Combine(_originalGameFolderName,"thumbnail.png"),Path.Combine(_newGameFolderPath,"thumbnail.png"),false);
 			}
 			
 			
@@ -253,6 +273,10 @@ namespace VNDSConverter
 				Console.Out.WriteLine("[CREATE] {0}",Path.Combine(_newGameFolderPath,"isvnds"));
 			}
 			File.Create(Path.Combine(_newGameFolderPath,"isvnds")).Dispose();
+			
+			BinaryWriter bw = new BinaryWriter(new FileStream(Path.Combine(_newGameFolderPath,"vndsvitaproperties"),FileMode.Create));
+			bw.Write(Options.writtenVersionNumber);
+			bw.Dispose();
 			
 			return _newGameFolderPath;
 		}
@@ -267,7 +291,7 @@ namespace VNDSConverter
 		}
 		
 		static void printPressAnyKey(){
-			Console.Write("Press any key to continue . . . ");
+			Console.Write("Press any key to continue . . .\n");
 		}
 		
 		static bool getFFmpegExist(){
@@ -299,6 +323,8 @@ namespace VNDSConverter
 			Console.Out.Write("Checking for FFmpeg...");
 			Options.canUseFFmpeg = getFFmpegExist();
 			Console.Out.WriteLine(Options.canUseFFmpeg);
+
+			Console.Out.WriteLine("Write v"+Options.writtenVersionNumber);
 			if (args.Length==0){
 				if (!StolenCode.IsRunningOnMono()){
 					Application.EnableVisualStyles();

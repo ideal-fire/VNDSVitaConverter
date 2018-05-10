@@ -19,6 +19,12 @@ namespace VNDSConverter
 		public static bool canUseFFmpeg=false;
 		public static bool canInfiniteProcess=false;
 
+		public static byte writtenVersionNumber=2;
+		
+		// Image dimensions will be rounded up to the nearest multiple of this number
+		public static int imageRoundUpWidth=100;
+		public static int imageRoundUpHeight=100;
+
 		//public const string[] possibleFreacLocations = new string[]{"./putwindowexehere","./freac-1.1-alpha-20180306-linux-64/freac","./freac-1.1-alpha-20180306-linux/freac"}
 		//public static string actualFreacLocation;
 
