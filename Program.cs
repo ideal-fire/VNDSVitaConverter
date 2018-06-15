@@ -35,6 +35,9 @@ namespace VNDSConverter{
 		static string getNewAudioDirectory(string _rootDirectory){
 			return Path.Combine(_rootDirectory,"SE"+Path.DirectorySeparatorChar);
 		}
+		static string getNewAudioArchive(string _rootDirectory){
+			return Path.Combine(_rootDirectory,"SEArchive.legArchive");
+		}
 		
 		// Pass the root directory of the old folder
 
@@ -94,50 +97,10 @@ namespace VNDSConverter{
 		static void processCharacterImages(string _sourceFile, string _destFile){
 			_processSingleImage(_sourceFile,_destFile,true);
 		}
-
-		static void _processSingleImage(string _sourceFile, string _destFile, bool _isBust){
-			string _cachedExtension = Path.GetExtension(_sourceFile);
-			if (_cachedExtension==".png" || _cachedExtension==".jpg" || _cachedExtension==".jpeg" || _cachedExtension==".bmp"){
-				if (Options.detailedConsoleOutput){
-					Console.Out.WriteLine("[Image] {0}",_sourceFile);
-				}
-				Bitmap _tempLoadedBitmap;
-				try{
-					_tempLoadedBitmap = new Bitmap(_sourceFile);
-					//if (_tempLoadedBitmap.Width>_recordWidth){
-					//	_recordWidth = _tempLoadedBitmap.Width;
-					//}
-					//if (_tempLoadedBitmap.Height>_recordHeight){
-					//	_recordHeight = _tempLoadedBitmap.Height;
-					//}
-					fixBitmap(ref _tempLoadedBitmap,_isBust);
-				}catch(Exception){
-					if (Options.importantConsoleOutput){
-						Console.Out.WriteLine("[BLACK] Force black image {0}",_sourceFile);
-					}
-					_tempLoadedBitmap = new Bitmap(256,192,PixelFormat.Format32bppArgb);
-					using (Graphics g = Graphics.FromImage(_tempLoadedBitmap)){
-						g.FillRectangle(Brushes.Black,0,0,_tempLoadedBitmap.Width,_tempLoadedBitmap.Height);
-					}
-					fixBitmap(ref _tempLoadedBitmap,_isBust);
-				}
-				_tempLoadedBitmap.Save(_destFile,ImageFormat.Png);
-				/*if (_cachedExtension==".png"){
-					_tempLoadedBitmap.Save(Path.Combine(_destDirectory,Path.GetFileName(_filesToProcess[i]).ToUpper()),ImageFormat.Png);
-				}else if (_cachedExtension==".jpg" || _cachedExtension==".jpeg"){
-					_tempLoadedBitmap.Save(Path.Combine(_destDirectory,Path.GetFileName(_filesToProcess[i]).ToUpper()),ImageFormat.Jpeg);
-				}*/
-				_tempLoadedBitmap.Dispose();
-			}else{
-				if (Options.errorConsoleOutput){
-					Console.Out.WriteLine("[Skip] Non-image extension {0}.",Path.GetExtension(_sourceFile));
-				}
-			}
-		}
 		static void copyAndOverwriteFile(string _inFile, string _outFile){
 			File.Copy(_inFile,_outFile,true);
 		}
-		static void processSingleSound(string _inFile, string _outFile){
+		static void _convertSingleSound(string _inFile){
 			if (Path.GetExtension(_inFile)==".aac"){
 				if (Options.canUseFFmpeg){
 					if (Options.detailedConsoleOutput){
@@ -149,7 +112,7 @@ namespace VNDSConverter{
 					}else{
 						_FFmpegProcess.StartInfo.FileName = "ffmpeg.exe";
 					}
-					_FFmpegProcess.StartInfo.Arguments = "-i \""+_inFile+"\" \""+Path.ChangeExtension(_outFile,".ogg")+"\"";
+					_FFmpegProcess.StartInfo.Arguments = "-i \""+_inFile+"\" \""+Path.ChangeExtension(_inFile,".ogg")+"\"";
 					_FFmpegProcess.StartInfo.UseShellExecute = false;
 					_FFmpegProcess.StartInfo.RedirectStandardOutput = true;
 					_FFmpegProcess.Start();
@@ -162,11 +125,6 @@ namespace VNDSConverter{
 						Console.Out.WriteLine("Skip .aac file {0}",_inFile);
 					}
 				}
-			}else{
-				if (Options.detailedConsoleOutput){
-					Console.Out.WriteLine("[Copy] {0} to {1}",_inFile, _outFile);
-				}
-				File.Copy(_inFile, _outFile);
 			}
 		}
 		// based on https://docs.microsoft.com/en-us/dotnet/standard/io/how-to-copy-directories
@@ -226,6 +184,73 @@ namespace VNDSConverter{
 			}
 		}
 		
+		static void _processSingleImage(string _sourceFile, string _destFile, bool _isBust){
+			string _cachedExtension = Path.GetExtension(_sourceFile);
+			if (_cachedExtension==".png" || _cachedExtension==".jpg" || _cachedExtension==".jpeg" || _cachedExtension==".bmp"){
+				if (Options.detailedConsoleOutput){
+					Console.Out.WriteLine("[Image] {0}",_sourceFile);
+				}
+				Bitmap _tempLoadedBitmap;
+				try{
+					_tempLoadedBitmap = new Bitmap(_sourceFile);
+					//if (_tempLoadedBitmap.Width>_recordWidth){
+					//	_recordWidth = _tempLoadedBitmap.Width;
+					//}
+					//if (_tempLoadedBitmap.Height>_recordHeight){
+					//	_recordHeight = _tempLoadedBitmap.Height;
+					//}
+					fixBitmap(ref _tempLoadedBitmap,_isBust);
+				}catch(Exception){
+					if (Options.importantConsoleOutput){
+						Console.Out.WriteLine("[BLACK] Force black image {0}",_sourceFile);
+					}
+					_tempLoadedBitmap = new Bitmap(256,192,PixelFormat.Format32bppArgb);
+					using (Graphics g = Graphics.FromImage(_tempLoadedBitmap)){
+						g.FillRectangle(Brushes.Black,0,0,_tempLoadedBitmap.Width,_tempLoadedBitmap.Height);
+					}
+					fixBitmap(ref _tempLoadedBitmap,_isBust);
+				}
+				_tempLoadedBitmap.Save(_destFile,ImageFormat.Png);
+				/*if (_cachedExtension==".png"){
+					_tempLoadedBitmap.Save(Path.Combine(_destDirectory,Path.GetFileName(_filesToProcess[i]).ToUpper()),ImageFormat.Png);
+				}else if (_cachedExtension==".jpg" || _cachedExtension==".jpeg"){
+					_tempLoadedBitmap.Save(Path.Combine(_destDirectory,Path.GetFileName(_filesToProcess[i]).ToUpper()),ImageFormat.Jpeg);
+				}*/
+				_tempLoadedBitmap.Dispose();
+			}else{
+				if (Options.errorConsoleOutput){
+					Console.Out.WriteLine("[Skip] Non-image extension {0}.",Path.GetExtension(_sourceFile));
+				}
+			}
+		}
+
+		static void makeSoundArchive(string _sourceDirectory, string _destFile){
+			// Step 1 - Convert any .aac audio into .ogg
+			if (Options.simpleConsoleOutput){
+				Console.Out.WriteLine("Converting aac audio if present");
+			}
+			string[] _foundFiles = Directory.GetFiles(_sourceDirectory,"*",SearchOption.AllDirectories);
+			for (int i=0;i<_foundFiles.Length;++i){
+				_convertSingleSound(_foundFiles[i]);
+			}
+
+			// Step 2 - Make archive
+			_foundFiles = Directory.GetFiles(_sourceDirectory,"*",SearchOption.AllDirectories);
+			LegArchive _soundArchive = new LegArchive(_destFile,_sourceDirectory);
+			if (Options.simpleConsoleOutput){
+				Console.Out.WriteLine("Creating archive");
+			}
+			for (int i=0;i<_foundFiles.Length;++i){
+				if (Path.GetExtension(_foundFiles[i])!=".aac"){
+					_soundArchive.addFile(_foundFiles[i]);
+				}
+			}
+			if (Options.simpleConsoleOutput){
+				Console.Out.WriteLine("Writing filename table");
+			}
+			_soundArchive.finish();
+		}
+
 		public static string doFunctionality(string _originalGameFolderName){
 			string _newGameFolderPath = changeDirectoryPath(_originalGameFolderName);
 			if (Options.autoDelete){
@@ -249,7 +274,7 @@ namespace VNDSConverter{
 			maybeExtractZIPFile(Path.Combine(_originalGameFolderName,"script.zip"),_originalGameFolderName);
 			maybeExtractZIPFile(Path.Combine(_originalGameFolderName,"sound.zip"),_originalGameFolderName);
 			
-			processDirectory(getOldAudioDirectory(_originalGameFolderName),getNewAudioDirectory(_newGameFolderPath),processSingleSound);
+			makeSoundArchive(getOldAudioDirectory(_originalGameFolderName),getNewAudioArchive(_newGameFolderPath));
 			processDirectory(getOldScriptDirectory(_originalGameFolderName),getNewScriptDirectory(_newGameFolderPath),copyAndOverwriteFile);
 			processDirectory(getOldCGDirectoryA(_originalGameFolderName),getNewCGDirectoryA(_newGameFolderPath),processBackgroundImages);
 			processDirectory(getOldCGDirectoryB(_originalGameFolderName),getNewCGDirectoryB(_newGameFolderPath),processCharacterImages);
