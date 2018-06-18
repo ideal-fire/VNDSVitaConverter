@@ -19,7 +19,9 @@ namespace VNDSConverter
 		public static bool canUseFFmpeg=false;
 		public static bool canInfiniteProcess=false;
 
-		public static byte writtenVersionNumber=2;
+		// 2 is ???
+		// 3 is after added sound archive
+		public static byte writtenVersionNumber=3;
 		
 		// Image dimensions will be rounded up to the nearest multiple of this number
 		public static int imageRoundUpWidth=100;

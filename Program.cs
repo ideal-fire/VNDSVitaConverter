@@ -238,7 +238,7 @@ namespace VNDSConverter{
 			_foundFiles = Directory.GetFiles(_sourceDirectory,"*",SearchOption.AllDirectories);
 			LegArchive _soundArchive = new LegArchive(_destFile,_sourceDirectory);
 			if (Options.simpleConsoleOutput){
-				Console.Out.WriteLine("Creating archive");
+				Console.Out.WriteLine("Creating sound archive");
 			}
 			for (int i=0;i<_foundFiles.Length;++i){
 				if (Path.GetExtension(_foundFiles[i])!=".aac"){
