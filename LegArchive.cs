@@ -33,6 +33,7 @@ class LegArchive{
 	}
 
 	private void writeCString(BinaryWriter _passedWriter,string _stringToWrite){
+		_stringToWrite = _stringToWrite.Replace("\\","/"); // Delete Windows directory separation
 		_passedWriter.Write(ASCIIEncoding.ASCII.GetBytes(_stringToWrite));
 		_passedWriter.Write((byte)0);
 	}
