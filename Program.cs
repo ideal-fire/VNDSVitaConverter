@@ -225,30 +225,36 @@ namespace VNDSConverter{
 		}
 
 		static void makeSoundArchive(string _sourceDirectory, string _destFile){
-			// Step 1 - Convert any .aac audio into .ogg
-			if (Options.simpleConsoleOutput){
-				Console.Out.WriteLine("Converting aac audio if present");
-			}
-			string[] _foundFiles = Directory.GetFiles(_sourceDirectory,"*",SearchOption.AllDirectories);
-			for (int i=0;i<_foundFiles.Length;++i){
-				_convertSingleSound(_foundFiles[i]);
-			}
-
-			// Step 2 - Make archive
-			_foundFiles = Directory.GetFiles(_sourceDirectory,"*",SearchOption.AllDirectories);
-			LegArchive _soundArchive = new LegArchive(_destFile,_sourceDirectory);
-			if (Options.simpleConsoleOutput){
-				Console.Out.WriteLine("Creating sound archive");
-			}
-			for (int i=0;i<_foundFiles.Length;++i){
-				if (Path.GetExtension(_foundFiles[i])!=".aac"){
-					_soundArchive.addFile(_foundFiles[i]);
+			if (Directory.Exists(_sourceDirectory)){
+				// Step 1 - Convert any .aac audio into .ogg
+				if (Options.simpleConsoleOutput){
+					Console.Out.WriteLine("Converting aac audio if present");
+				}
+				string[] _foundFiles = Directory.GetFiles(_sourceDirectory,"*",SearchOption.AllDirectories);
+				for (int i=0;i<_foundFiles.Length;++i){
+					_convertSingleSound(_foundFiles[i]);
+				}
+	
+				// Step 2 - Make archive
+				_foundFiles = Directory.GetFiles(_sourceDirectory,"*",SearchOption.AllDirectories);
+				LegArchive _soundArchive = new LegArchive(_destFile,_sourceDirectory);
+				if (Options.simpleConsoleOutput){
+					Console.Out.WriteLine("Creating sound archive");
+				}
+				for (int i=0;i<_foundFiles.Length;++i){
+					if (Path.GetExtension(_foundFiles[i])!=".aac"){
+						_soundArchive.addFile(_foundFiles[i]);
+					}
+				}
+				if (Options.simpleConsoleOutput){
+					Console.Out.WriteLine("Writing filename table");
+				}
+				_soundArchive.finish();
+			}else{
+				if (Options.simpleConsoleOutput){
+					Console.Out.WriteLine("{0} not exist, so skipping sound",_sourceDirectory);
 				}
 			}
-			if (Options.simpleConsoleOutput){
-				Console.Out.WriteLine("Writing filename table");
-			}
-			_soundArchive.finish();
 		}
 
 		public static string doFunctionality(string _originalGameFolderName){
