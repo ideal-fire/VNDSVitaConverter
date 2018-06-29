@@ -12,7 +12,6 @@ namespace VNDSConverter
 		/// </summary>
 		private System.ComponentModel.IContainer components = null;
 		private System.Windows.Forms.Button selectFolderButton;
-		private System.Windows.Forms.Label currentFolderLabel;
 		private System.Windows.Forms.Button goButton;
 		private System.Windows.Forms.Label ffmpegstatuslabel;
 		
@@ -37,9 +36,10 @@ namespace VNDSConverter
 		protected void InitializeComponent()
 		{
 			this.selectFolderButton = new System.Windows.Forms.Button();
-			this.currentFolderLabel = new System.Windows.Forms.Label();
 			this.goButton = new System.Windows.Forms.Button();
 			this.ffmpegstatuslabel = new System.Windows.Forms.Label();
+			this.platformListBox = new System.Windows.Forms.ListBox();
+			this.label1 = new System.Windows.Forms.Label();
 			this.SuspendLayout();
 			// 
 			// selectFolderButton
@@ -52,17 +52,9 @@ namespace VNDSConverter
 			this.selectFolderButton.UseVisualStyleBackColor = true;
 			this.selectFolderButton.Click += new System.EventHandler(this.selectButtonClick);
 			// 
-			// currentFolderLabel
-			// 
-			this.currentFolderLabel.Location = new System.Drawing.Point(13, 43);
-			this.currentFolderLabel.Name = "currentFolderLabel";
-			this.currentFolderLabel.Size = new System.Drawing.Size(148, 17);
-			this.currentFolderLabel.TabIndex = 1;
-			this.currentFolderLabel.Text = "Please select a folder.";
-			// 
 			// goButton
 			// 
-			this.goButton.Location = new System.Drawing.Point(13, 63);
+			this.goButton.Location = new System.Drawing.Point(13, 42);
 			this.goButton.Name = "goButton";
 			this.goButton.Size = new System.Drawing.Size(75, 23);
 			this.goButton.TabIndex = 2;
@@ -72,25 +64,43 @@ namespace VNDSConverter
 			// 
 			// ffmpegstatuslabel
 			// 
-			this.ffmpegstatuslabel.Location = new System.Drawing.Point(13, 93);
+			this.ffmpegstatuslabel.Location = new System.Drawing.Point(13, 68);
 			this.ffmpegstatuslabel.Name = "ffmpegstatuslabel";
 			this.ffmpegstatuslabel.Size = new System.Drawing.Size(139, 38);
 			this.ffmpegstatuslabel.TabIndex = 3;
 			this.ffmpegstatuslabel.Text = "label1";
 			// 
+			// platformListBox
+			// 
+			this.platformListBox.FormattingEnabled = true;
+			this.platformListBox.Location = new System.Drawing.Point(110, 22);
+			this.platformListBox.Name = "platformListBox";
+			this.platformListBox.Size = new System.Drawing.Size(86, 43);
+			this.platformListBox.TabIndex = 4;
+			// 
+			// label1
+			// 
+			this.label1.Location = new System.Drawing.Point(110, 5);
+			this.label1.Name = "label1";
+			this.label1.Size = new System.Drawing.Size(98, 14);
+			this.label1.TabIndex = 5;
+			this.label1.Text = "Choose a platform";
+			// 
 			// MainForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-			this.ClientSize = new System.Drawing.Size(167, 140);
+			this.ClientSize = new System.Drawing.Size(212, 118);
+			this.Controls.Add(this.label1);
+			this.Controls.Add(this.platformListBox);
 			this.Controls.Add(this.ffmpegstatuslabel);
 			this.Controls.Add(this.goButton);
-			this.Controls.Add(this.currentFolderLabel);
 			this.Controls.Add(this.selectFolderButton);
 			this.Name = "MainForm";
 			this.Text = "VNDSConverterGUI";
 			this.ResumeLayout(false);
-
 		}
+		private System.Windows.Forms.Label label1;
+		private System.Windows.Forms.ListBox platformListBox;
 	}
 }

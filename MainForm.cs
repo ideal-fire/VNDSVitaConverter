@@ -34,6 +34,10 @@ namespace VNDSConverter
 				ffmpegstatuslabel.Text="FFmpeg not detected, .aac audio can't be converted. Please place ffmpeg.exe in the same directory as this program.";
 				ffmpegstatuslabel.ForeColor = Color.Red;
 			}
+			
+			for (int i=0;i<Options.possiblePlatforms.Length;++i){
+				platformListBox.Items.Add(Options.possiblePlatforms[i]);
+			}
 		}
 		void selectButtonClick(object sender, EventArgs e)
 		{
@@ -43,20 +47,24 @@ namespace VNDSConverter
 				if (!Directory.Exists(Path.Combine(myOpenDialog.SelectedPath,"script"+Path.DirectorySeparatorChar)) && !File.Exists((Path.Combine(myOpenDialog.SelectedPath,"script.zip"+Path.DirectorySeparatorChar)))){
 					DialogResult dialogResult = MessageBox.Show("The folder you chose is probably not a VNDS game folder because it doesn't contain a \"script\" folder.\nContinue?","onoziez", MessageBoxButtons.YesNo);
 					if (dialogResult != DialogResult.Yes){
-						currentFolderLabel.Text = "Please select a folder.";
 						lastChosenDirectory=null;
 						return;
 					}
 				}
 				MessageBox.Show(String.Format("For the root of the VNDS game, you chose {0}.",myOpenDialog.SelectedPath));
 				lastChosenDirectory = myOpenDialog.SelectedPath;
-				currentFolderLabel.Text = "Press the go button.";
+				selectFolderButton.Text="Reselect Folder";
 			}
 		}
 		void GoButtonClick(object sender, EventArgs e){
 			if (lastChosenDirectory!=null){
-				confirmedChosenDirectory = lastChosenDirectory;
-				Close();
+				if (platformListBox.SelectedIndex==-1){
+					MessageBox.Show("Please select a platform with the list box on the right.");
+				}else{
+					confirmedChosenDirectory = lastChosenDirectory;
+					Options.applyPlatformPresent(Options.possiblePlatforms[platformListBox.SelectedIndex]);
+					Close();
+				}
 			}else{
 				MessageBox.Show("Please select a folder first.");
 			}

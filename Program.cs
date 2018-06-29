@@ -76,16 +76,22 @@ namespace VNDSConverter{
 		// Also resizes image
 		static void fixBitmap(ref Bitmap _toFix, bool _isBust){
 			Bitmap _newImage;
-			if (_isBust){
+			if (_isBust && Options.doImageRounding){
 				_newImage = new Bitmap((int)Math.Ceiling(_toFix.Width/(double)Options.imageRoundUpWidth)*Options.imageRoundUpWidth,(int)Math.Ceiling(_toFix.Height/(double)Options.imageRoundUpHeight)*Options.imageRoundUpHeight,PixelFormat.Format32bppArgb);
 				// Because some of the image won't be used.
 				_newImage.MakeTransparent();
 			}else{
-				_newImage = new Bitmap(_toFix.Width,_toFix.Height,PixelFormat.Format32bppArgb);
+				_newImage = new Bitmap((int)(_toFix.Width*Options.resizeRatio),(int)(_toFix.Height*Options.resizeRatio),PixelFormat.Format32bppArgb);
 			}
 			//
-			using (Graphics g = Graphics.FromImage(_newImage)){
-				g.DrawImageUnscaledAndClipped(_toFix,new Rectangle(0,0,_newImage.Width,_newImage.Height));
+			if (Options.resizeRatio!=1.0 && Options.doImageRounding==false){
+				using (Graphics g = Graphics.FromImage(_newImage)){
+					g.DrawImage(_toFix,0,0,_newImage.Width,_newImage.Height);
+				}
+			}else{
+				using (Graphics g = Graphics.FromImage(_newImage)){
+					g.DrawImageUnscaledAndClipped(_toFix,new Rectangle(0,0,_newImage.Width,_newImage.Height));
+				}
 			}
 			_toFix.Dispose();
 			_toFix = _newImage;
@@ -258,6 +264,36 @@ namespace VNDSConverter{
 		}
 
 		public static string doFunctionality(string _originalGameFolderName){
+			// These variables will not be 0 if background images are being resized from their original img.ini value. These values should be written to a new img.ini.
+			int _resizedBackgroundWidth=0;
+			int _resizedBackgroundHeight=0; // As C# is for babies, I am forced to assign a value here even though I won't need it.
+			if (File.Exists(Path.Combine(_originalGameFolderName,"img.ini")) && Options.resizeImages){
+				StreamReader _tempImgIni = new StreamReader(new FileStream(Path.Combine(_originalGameFolderName,"img.ini"),FileMode.Open));
+				string _readWidthLine = _tempImgIni.ReadLine(); // width=xxx
+				string _readHeightLine = _tempImgIni.ReadLine();// height=xxx
+				_tempImgIni.Dispose();
+	
+				try{
+					int _readWidthNumber = Int32.Parse(_readWidthLine.Substring("width=".Length));
+					int _readHeightNumber = Int32.Parse(_readHeightLine.Substring("height=".Length));
+					
+					double _fitToWidthRatio = Options.targetWidth/(double)_readWidthNumber;
+					double _fitToHeightRatio = Options.targetHeight/(double)_readHeightNumber;
+					Options.resizeRatio = _fitToWidthRatio<_fitToHeightRatio ? _fitToWidthRatio : _fitToHeightRatio;
+
+					_resizedBackgroundWidth = (int)(_readWidthNumber*Options.resizeRatio);
+					_resizedBackgroundHeight = (int)(_readHeightNumber*Options.resizeRatio);
+				}catch(Exception e){
+					if (Options.errorConsoleOutput){
+						Console.Out.WriteLine(e.ToString());
+						Console.Out.Write("Failed to load img.ini, abort.\n");
+						return null;
+					}
+				}
+			}else{
+				Console.Out.WriteLine("Could not find img.ini, assuming DS resolution.");
+			}
+
 			string _newGameFolderPath = changeDirectoryPath(_originalGameFolderName);
 			if (Options.autoDelete){
 				if (Directory.Exists(_newGameFolderPath)){
@@ -289,7 +325,18 @@ namespace VNDSConverter{
 			}
 			copyIfExist(Path.Combine(_originalGameFolderName,"default.ttf"),Path.Combine(_newGameFolderPath,"default.ttf"));
 			copyIfExist(Path.Combine(_originalGameFolderName,"info.txt"),Path.Combine(_newGameFolderPath,"info.txt"));
-			copyIfExist(Path.Combine(_originalGameFolderName,"img.ini"),Path.Combine(_newGameFolderPath,"img.ini"));
+			if (_resizedBackgroundWidth==0){
+				copyIfExist(Path.Combine(_originalGameFolderName,"img.ini"),Path.Combine(_newGameFolderPath,"img.ini"));
+			}else{
+				if (Options.simpleConsoleOutput){
+					Console.Out.WriteLine("Make new img.ini.");
+				}
+				// If our backgrounds have been resized
+				StreamWriter _newImgIni = new StreamWriter(new FileStream(Path.Combine(_newGameFolderPath,"img.ini"),FileMode.Create));
+				_newImgIni.WriteLine("width="+_resizedBackgroundWidth);
+				_newImgIni.WriteLine("height="+_resizedBackgroundHeight);
+				_newImgIni.Dispose();
+			}
 			if (File.Exists(Path.Combine(_originalGameFolderName,"icon.png"))){
 				Console.Out.WriteLine("Fix and copy icon.png");
 				_processSingleImage(Path.Combine(_originalGameFolderName,"icon.png"),Path.Combine(_newGameFolderPath,"icon.png"),false);
@@ -303,7 +350,7 @@ namespace VNDSConverter{
 			if (Options.simpleConsoleOutput){
 				Console.Out.WriteLine("[CREATE] {0}",Path.Combine(_newGameFolderPath,"isvnds"));
 			}
-			File.Create(Path.Combine(_newGameFolderPath,"isvnds")).Dispose();
+			File.WriteAllText(Path.Combine(_newGameFolderPath,"isvnds"),Options.platformName);
 			
 			BinaryWriter bw = new BinaryWriter(new FileStream(Path.Combine(_newGameFolderPath,"vndsvitaproperties"),FileMode.Create));
 			bw.Write(Options.writtenVersionNumber);
@@ -313,7 +360,7 @@ namespace VNDSConverter{
 		}
 		
 		static void toggleDependingOnArgs(string[] args, ref int i, ref bool _toToggle){
-			i++;
+			++i;
 			if (args[i]!="off"){
 				_toToggle=true;
 			}else{
@@ -383,6 +430,21 @@ namespace VNDSConverter{
 							args[0]=null;
 						}
 					}
+
+					// Platform prompt
+					do{
+						Console.Out.WriteLine("\n\nEnter the number of the platform you want to convert for.\n");
+						for (int j=0;j<Options.possiblePlatforms.Length;++j){
+							Console.Out.WriteLine("{0}) {1}",j,Options.possiblePlatforms[j]);
+						}
+
+						int _userSelection;
+						if(Int32.TryParse(Console.ReadLine(), out _userSelection)){
+							Options.applyPlatformPresent(Options.possiblePlatforms[_userSelection]);
+						}else{
+							Console.Out.WriteLine("User input was not a nu- wait a second, this isn't in Windows mode. I expected more from you.");
+						}
+					}while(Options.platformName==null);
 				}
 			}
 			int i;
