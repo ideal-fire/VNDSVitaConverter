@@ -90,7 +90,7 @@ namespace VNDSConverter{
 				}
 			}else{
 				using (Graphics g = Graphics.FromImage(_newImage)){
-					g.DrawImageUnscaledAndClipped(_toFix,new Rectangle(0,0,_newImage.Width,_newImage.Height));
+					g.DrawImage(_toFix,0,0,_toFix.Width,_toFix.Height);
 				}
 			}
 			_toFix.Dispose();
